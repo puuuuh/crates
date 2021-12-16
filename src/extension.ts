@@ -12,7 +12,7 @@ import {
 } from "vscode";
 import tomlListener from "./core/listener";
 import TomlCommands from "./toml/commands";
-import { VersionCompletions } from "./providers/autoCompletion";
+import { NameCompletor, VersionCompletions } from "./providers/autoCompletion";
 
 export function activate(context: ExtensionContext) {
   const documentSelector: DocumentSelector = { language: "toml", pattern: "**/[Cc]argo.toml" };
@@ -38,6 +38,10 @@ export function activate(context: ExtensionContext) {
       new VersionCompletions(),
       "'", '"', ".", "+", "-",
       "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
+    ),
+    languages.registerCompletionItemProvider(
+      documentSelector,
+      new NameCompletor()
     ),
 
     // TODO:  Register our Quick Actions provider

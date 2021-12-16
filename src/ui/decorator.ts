@@ -48,6 +48,7 @@ export default function decorate(editor: TextEditor, dependencies: Array<Depende
   }
   if (decorationHandle) {
     decorationHandle.dispose();
+
   }
   decorationHandle = latestVersion("VERSION");
   editor.setDecorations(decorationHandle, options);

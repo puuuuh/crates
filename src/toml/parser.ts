@@ -3,14 +3,23 @@ import Item from "../core/Item";
 
 export const RE_VERSION = /^[ \t]*(?<!#)(\S+?)([ \t]*=[ \t]*)(?:({.*?version[ \t]*=[ \t]*)("|')(.*?)\4|("|')(.*?)\6)/;
 export const RE_FEATURES = /^[ \t]*(?<!#)((?:[\S]+?[ \t]*=[ \t]*.*?{.*?)?features[ \t]*=[ \t]*\[[ \t]*)(.+?)[ \t]*\]/;
-
+export const RE_NAME = /^([ \t]*)([\w-]+).*?$/;
 const RE_TABLE_HEADER = /^[ \t]*(?!#)[ \t]*\[[ \t]*(.+?)[ \t]*\][ \t]*$/;
 const RE_TABLE_HEADER_DEPENDENCY = /^(?:.+?\.)?(?:dev-)?dependencies(?:\.([^.]+?))?$/;
+
 export function findCrate(document: TextDocument, line: number): string | undefined {
   while (--line >= 0) {
     const match = document.lineAt(line).text.match(RE_TABLE_HEADER);
     if (!match) continue;
     return match[1].match(RE_TABLE_HEADER_DEPENDENCY)?.[1];
+  }
+}
+
+export function findSection(document: TextDocument, line: number): string | undefined {
+  while (--line >= 0) {
+    const match = document.lineAt(line).text.match(RE_TABLE_HEADER);
+    if (!match) continue;
+    return match[1];
   }
 }
 
@@ -109,6 +118,7 @@ export function filterCrates(items: Item[]): Item[] {
  * @param data Parse the given document and index all items.
  */
 export function parse(data: string): Item {
+  console.log("parse");
   let item: Item = new Item();
   item.start = 0;
   item.end = data.length;

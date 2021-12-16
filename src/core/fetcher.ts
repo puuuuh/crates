@@ -4,11 +4,26 @@ import { statusBarItem } from "../ui/indicators";
 import {
   versions as loVersions,
   checkCargoRegistry,
+  crates,
 } from "../api/local_registry";
 import { versions as ghVersions } from "../api/github";
 import compareVersions from "../semver/compareVersions";
 import { CompletionItem, CompletionItemKind, CompletionList } from "vscode";
 import { sortText } from "../providers/autoCompletion";
+
+export function findCratesByPrefix(
+  prefix: string,
+  useLocalIndex?: boolean,
+  localIndexHash?: string,
+  localGitBranch?: string
+): Promise<string[]> {
+  const isLocalIndexAvailable = useLocalIndex && checkCargoRegistry(localIndexHash, localGitBranch);
+  if (!isLocalIndexAvailable) {
+      return Promise.resolve([])
+  }
+
+  return crates(prefix)
+}
 
 export function fetchCrateVersions(
   dependencies: Item[],

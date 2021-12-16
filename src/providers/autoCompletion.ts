@@ -9,12 +9,14 @@ import {
   ProviderResult,
   Range,
   TextDocument,
+  workspace,
 } from "vscode";
+import { findCratesByPrefix } from "../core/fetcher";
 
 import { fetchedDepsMap, getFetchedDependency } from "../core/listener";
 import { checkVersion } from "../semver/semverUtils";
 
-import { RE_VERSION, RE_FEATURES, findCrate, findCrateAndVersion } from "../toml/parser";
+import { RE_FEATURES, findCrate, findCrateAndVersion, RE_NAME, findSection, RE_VERSION } from "../toml/parser";
 
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
 export function sortText(i: number): string {
@@ -24,6 +26,40 @@ export function sortText(i: number): string {
   return "z".repeat(columns) + letter;
 }
 
+export class NameCompletor implements CompletionItemProvider {
+  async provideCompletionItems(
+    document: TextDocument,
+    position: Position,
+    _token: CancellationToken,
+    _context: CompletionContext
+  ): Promise<CompletionItem[] | CompletionList | undefined> {
+    if (!fetchedDepsMap) return;
+    let data = document.lineAt(position).text;
+    const section = findSection(document, position.line);
+    if (section != "dependencies" && section != "dev-dependencies") {
+        return
+    }
+    const match = data.match(RE_NAME);
+    if (match) {
+      let start = match[1].length;
+      let end = match[1].length + match[2].length;
+      let range = new Range(new Position(position.line, start), new Position(position.line, end));
+      if (!range.contains(position)) {
+        return;
+      }
+      const config = workspace.getConfiguration("", document.uri);
+      const useLocalIndex = config.get<boolean>("crates.useLocalCargoIndex");
+      const localIndexHash = config.get<string>("crates.localCargoIndexHash");
+      const localGitBranch = config.get<string>("crates.localCargoIndexBranch");
+      let data = await findCratesByPrefix(match[2], useLocalIndex, localIndexHash, localGitBranch);
+      return data.map((item: string) => {
+        let i = new CompletionItem(item, CompletionItemKind.Text)
+        i.range = range;
+        return i;
+      });
+    }
+  }
+}
 export class VersionCompletions implements CompletionItemProvider {
   provideCompletionItems(
     document: TextDocument,

@@ -10,7 +10,7 @@ import * as os from "os";
 import * as path from "path";
 import * as util from "util";
 import * as fs from "fs";
-import { decidePath, parseVersions } from "./index-utils";
+import { decidePath, decidePrefixPath, parseVersions } from "./index-utils";
 const exec = util.promisify(require("child_process").exec);
 const execSync = require("child_process").execSync;
 
@@ -23,8 +23,6 @@ function getCargoPath() {
     return process.env.CARGO_HOME;
   return path.resolve(os.homedir(), ".cargo/");
 }
-
-
 
 let gitDir = path.resolve(cargoHome, "registry/index/github.com-1ecc6299db9ec823/.git/");
 let gitBranch = "origin/master";
@@ -57,6 +55,24 @@ export const versions = (name: string) => {
       throw resp;
     });
 };
+
+export const crates = (prefix: string) => {
+  return exec(
+    `git --no-pager --git-dir="${gitDir}" ls-tree -r --name-only ${gitBranch} "${decidePrefixPath(prefix)}"`,
+    { maxBuffer: 8 * 1024 * 1024 }  // "8M ought to be enough for anyone."
+  )
+    .then((buf: { stdout: Buffer, stderr: Buffer; }) => {
+      const response = buf.stdout.toString();
+      return response.split("\n").map((data) => {
+        return data.substr(data.lastIndexOf('/') + 1)
+      });
+    })
+    .catch((resp: any) => {
+      console.error(resp);
+      throw resp;
+    });
+};
+
 export const getDefaultBranch = () => {
   try {
     const response = execSync(`git --no-pager --git-dir="${gitDir}" branch --all`, { maxBuffer: 8 * 1024 }).toString();
