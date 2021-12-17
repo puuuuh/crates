@@ -33,7 +33,7 @@ export class NameCompletor implements CompletionItemProvider {
     _token: CancellationToken,
     _context: CompletionContext
   ): Promise<CompletionItem[] | CompletionList | undefined> {
-    if (!fetchedDepsMap) return;
+    console.log(`${_context.triggerKind}`);
     let data = document.lineAt(position).text;
     const section = findSection(document, position.line);
     if (section != "dependencies" && section != "dev-dependencies") {
@@ -41,22 +41,34 @@ export class NameCompletor implements CompletionItemProvider {
     }
     const match = data.match(RE_NAME);
     if (match) {
+      let prefix = match[2];
       let start = match[1].length;
-      let end = match[1].length + match[2].length;
+      let end = match[1].length + prefix.length;
       let range = new Range(new Position(position.line, start), new Position(position.line, end));
       if (!range.contains(position)) {
-        return;
+        return
       }
+
+      if (prefix.length < 2) {
+        const item = new CompletionItem(prefix, CompletionItemKind.Module);
+        item.range = range;
+        return new CompletionList([
+            item
+        ], true)
+      }
+
       const config = workspace.getConfiguration("", document.uri);
       const useLocalIndex = config.get<boolean>("crates.useLocalCargoIndex");
       const localIndexHash = config.get<string>("crates.localCargoIndexHash");
       const localGitBranch = config.get<string>("crates.localCargoIndexBranch");
-      let data = await findCratesByPrefix(match[2], useLocalIndex, localIndexHash, localGitBranch);
-      return data.map((item: string) => {
-        let i = new CompletionItem(item, CompletionItemKind.Text)
+      let data = await findCratesByPrefix(prefix, useLocalIndex, localIndexHash, localGitBranch);
+
+      const completionItems = data.map((item: string) => {
+        let i = new CompletionItem(item, CompletionItemKind.Module)
         i.range = range;
         return i;
       });
+      return completionItems
     }
   }
 }
