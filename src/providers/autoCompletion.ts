@@ -49,14 +49,6 @@ export class NameCompletor implements CompletionItemProvider {
         return
       }
 
-      if (prefix.length < 2) {
-        const item = new CompletionItem(prefix, CompletionItemKind.Module);
-        item.range = range;
-        return new CompletionList([
-            item
-        ], true)
-      }
-
       const config = workspace.getConfiguration("", document.uri);
       const useLocalIndex = config.get<boolean>("crates.useLocalCargoIndex");
       const localIndexHash = config.get<string>("crates.localCargoIndexHash");
@@ -68,7 +60,7 @@ export class NameCompletor implements CompletionItemProvider {
         i.range = range;
         return i;
       });
-      return completionItems
+      return new CompletionList(completionItems, prefix.length < 2)
     }
   }
 }

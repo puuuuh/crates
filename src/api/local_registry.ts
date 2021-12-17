@@ -10,7 +10,7 @@ import * as os from "os";
 import * as path from "path";
 import * as util from "util";
 import * as fs from "fs";
-import { decidePath, decidePrefixPath, parseVersions } from "./index-utils";
+import { decidePath, decidePrefixPaths, parseVersions } from "./index-utils";
 const exec = util.promisify(require("child_process").exec);
 const execSync = require("child_process").execSync;
 
@@ -57,8 +57,11 @@ export const versions = (name: string) => {
 };
 
 export const crates = (prefix: string) => {
+  let commands = decidePrefixPaths(prefix).map((path) => 
+    `git --no-pager --git-dir="${gitDir}" ls-tree -r --name-only ${gitBranch} "${path}"`)
+  
   return exec(
-    `git --no-pager --git-dir="${gitDir}" ls-tree -r --name-only ${gitBranch} "${decidePrefixPath(prefix)}"`,
+    `{ ${commands.join(" & ")}; }`,
     { maxBuffer: 8 * 1024 * 1024 }  // "8M ought to be enough for anyone."
   )
     .then((buf: { stdout: Buffer, stderr: Buffer; }) => {
