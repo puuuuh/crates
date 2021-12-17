@@ -57,13 +57,11 @@ export const versions = (name: string) => {
 };
 
 export const crates = (prefix: string) => {
-  let commands = decidePrefixPaths(prefix).map((path) => 
-    `git --no-pager --git-dir="${gitDir}" ls-tree -r --name-only ${gitBranch} "${path}"`)
-  
-  return exec(
-    `{ ${commands.join(" & ")}; }`,
-    { maxBuffer: 8 * 1024 * 1024 }  // "8M ought to be enough for anyone."
-  )
+  return decidePrefixPaths(prefix).map((path) => 
+    exec(
+      `git --no-pager --git-dir="${gitDir}" ls-tree -r --name-only ${gitBranch} "${path}"`,
+      { maxBuffer: 8 * 1024 * 1024 }  // "8M ought to be enough for anyone."
+    )
     .then((buf: { stdout: Buffer, stderr: Buffer; }) => {
       const response = buf.stdout.toString();
       return response.split("\n").map((data) => {
@@ -73,7 +71,8 @@ export const crates = (prefix: string) => {
     .catch((resp: any) => {
       console.error(resp);
       throw resp;
-    });
+    })
+  )
 };
 
 export const getDefaultBranch = () => {

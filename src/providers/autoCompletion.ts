@@ -11,7 +11,7 @@ import {
   TextDocument,
   workspace,
 } from "vscode";
-import { findCratesByPrefix } from "../core/fetcher";
+import { checkCargoRegistry, crates } from "../api/local_registry";
 
 import { fetchedDepsMap, getFetchedDependency } from "../core/listener";
 import { checkVersion } from "../semver/semverUtils";
@@ -53,9 +53,13 @@ export class NameCompletor implements CompletionItemProvider {
       const useLocalIndex = config.get<boolean>("crates.useLocalCargoIndex");
       const localIndexHash = config.get<string>("crates.localCargoIndexHash");
       const localGitBranch = config.get<string>("crates.localCargoIndexBranch");
-      let data = await findCratesByPrefix(prefix, useLocalIndex, localIndexHash, localGitBranch);
+      const isLocalIndexAvailable = useLocalIndex && checkCargoRegistry(localIndexHash, localGitBranch);
+      if (!isLocalIndexAvailable) {
+        return
+      }
+      let data = await Promise.all(crates(prefix));
 
-      const completionItems = data.map((item: string) => {
+      const completionItems = [].concat(...data).map((item: string) => {
         let i = new CompletionItem(item, CompletionItemKind.Module)
         i.range = range;
         return i;
